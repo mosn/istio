@@ -118,8 +118,12 @@ global:
   # binaryPath is sidecar binary path
   # image is sidecar and pilot-agent image, by make docker.proxyv2 .
   sidecar:
-    binaryPath: /usr/local/bin/mosn
     image: proxyv2
+    # mosn/envoy
+    implement: mosn
+    # binaryPath value can be set at the same time
+    #    binaryPath: /usr/local/bin/mosn
+
 
   # Comma-separated minimum per-scope logging level of messages to output, in the form of <scope>:<level>,<scope>:<level>
   # The control plane has different scopes depending on component, but can configure default log level across all components

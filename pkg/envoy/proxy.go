@@ -25,8 +25,8 @@ import (
 
 	envoyAdmin "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	"github.com/gogo/protobuf/types"
+	"istio.io/istio/pkg/proxy"
 
-	meshconfig "istio.io/api/mesh/v1alpha1"
 	"istio.io/pkg/env"
 	"istio.io/pkg/log"
 
@@ -36,6 +36,7 @@ import (
 const (
 	// epochFileTemplate is a template for the root config JSON
 	epochFileTemplate = "envoy-rev%d.json"
+	defaultBinaryPath = "/usr/local/bin/envoy"
 
 	// drainFile is the location of the bootstrap config used for draining on istio-proxy termination
 	drainFile         = "/var/lib/istio/envoy/envoy_bootstrap_drain.json"
@@ -46,30 +47,30 @@ const (
 )
 
 type envoy struct {
-	ProxyConfig
+	proxy.ProxyConfig
 	extraArgs []string
 }
 
-type ProxyConfig struct {
-	Config              meshconfig.ProxyConfig
-	Node                string
-	LogLevel            string
-	ComponentLogLevel   string
-	PilotSubjectAltName []string
-	MixerSubjectAltName []string
-	NodeIPs             []string
-	DNSRefreshRate      string
-	PodName             string
-	PodNamespace        string
-	PodIP               net.IP
-	SDSUDSPath          string
-	SDSTokenPath        string
-	ControlPlaneAuth    bool
-	DisableReportCalls  bool
+
+func init(){
+	// no need to register envoy, for envoy is the default implement for pilot-agent
+	proxy.RegisterDefaultProxyFactory(NewEnvoy)
 }
 
 // NewProxy creates an instance of the proxy control commands
-func NewProxy(cfg ProxyConfig) Proxy {
+func NewEnvoy(cfg proxy.ProxyConfig) (proxy.Proxy, error) {
+	binaryPath := cfg.Config.BinaryPath
+	if binaryPath == "" {
+		log.Infof("binary path from flag is empty, try using %s as binary path", defaultBinaryPath)
+		binaryPath = defaultBinaryPath
+	}
+
+	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
+		return nil, err
+	}
+
+	cfg.Config.BinaryPath = binaryPath
+
 	// inject tracing flag for higher levels
 	var args []string
 	if cfg.LogLevel != "" {
@@ -82,7 +83,7 @@ func NewProxy(cfg ProxyConfig) Proxy {
 	return &envoy{
 		ProxyConfig: cfg,
 		extraArgs:   args,
-	}
+	}, nil
 }
 
 func (e *envoy) IsLive() bool {
@@ -152,7 +153,7 @@ func (e *envoy) Run(config interface{}, epoch int, abort <-chan error) error {
 	// Note: the cert checking still works, the generated file is updated if certs are changed.
 	// We just don't save the generated file, but use a custom one instead. Pilot will keep
 	// monitoring the certs and restart if the content of the certs changes.
-	if _, ok := config.(DrainConfig); ok {
+	if _, ok := config.(proxy.DrainConfig); ok {
 		// We are doing a graceful termination, apply an empty config to drain all connections
 		fname = drainFile
 	} else if len(e.Config.CustomConfigFile) > 0 {

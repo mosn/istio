@@ -48,16 +48,16 @@ type Instance interface {
 
 // New creates a new Instance of an Envoy bootstrap writer.
 func New(cfg Config) Instance {
-	return &instance{
+	return &EnvoyBootstrap{
 		Config: cfg,
 	}
 }
 
-type instance struct {
+type EnvoyBootstrap struct {
 	Config
 }
 
-func (i *instance) WriteTo(w io.Writer) error {
+func (i *EnvoyBootstrap) WriteTo(w io.Writer) error {
 	// Get the input bootstrap template.
 	t, err := newTemplate(i.Proxy)
 	if err != nil {
@@ -74,7 +74,7 @@ func (i *instance) WriteTo(w io.Writer) error {
 	return t.Execute(w, templateParams)
 }
 
-func (i *instance) CreateFileForEpoch(epoch int) (string, error) {
+func (i *EnvoyBootstrap) CreateFileForEpoch(epoch int) (string, error) {
 	// Create the output file.
 	if err := os.MkdirAll(i.Proxy.ConfigPath, 0700); err != nil {
 		return "", err

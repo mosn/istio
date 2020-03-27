@@ -31,6 +31,7 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
+	isitoProxy "istio.io/istio/pkg/proxy"
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	networking "istio.io/api/networking/v1alpha3"
@@ -51,6 +52,7 @@ import (
 	"istio.io/istio/pkg/config/mesh"
 	"istio.io/istio/pkg/config/validation"
 	"istio.io/istio/pkg/envoy"
+	_ "istio.io/istio/pkg/mosn"
 	"istio.io/istio/pkg/spiffe"
 	"istio.io/istio/pkg/util/gogoprotomarshal"
 )
@@ -96,6 +98,7 @@ var (
 	disableInternalTelemetry bool
 	tlsCertsToWatch          []string
 	loggingOptions           = log.DefaultOptions()
+	proxyImplementFlag       string
 
 	wg sync.WaitGroup
 
@@ -444,7 +447,7 @@ var (
 
 			log.Infof("PilotSAN %#v", pilotSAN)
 
-			envoyProxy := envoy.NewProxy(envoy.ProxyConfig{
+			pilotProxyConfig := isitoProxy.ProxyConfig{
 				Config:              proxyConfig,
 				Node:                role.ServiceNode(),
 				LogLevel:            proxyLogLevel,
@@ -460,12 +463,17 @@ var (
 				SDSTokenPath:        sdsTokenPath,
 				ControlPlaneAuth:    controlPlaneAuthEnabled,
 				DisableReportCalls:  disableInternalTelemetry,
-			})
+				ProxyImplement:      constants.ProxyImplement(proxyImplementFlag),
+			}
 
-			agent := envoy.NewAgent(envoyProxy, features.TerminationDrainDuration())
+			proxy, err := isitoProxy.NewProxy(pilotProxyConfig)
+			if err != nil {
+				return err
+			}
+
+			agent := isitoProxy.NewAgent(proxy, features.TerminationDrainDuration())
 
 			watcher := envoy.NewWatcher(tlsCertsToWatch, agent.Restart)
-
 			go watcher.Run(ctx)
 
 			// On SIGINT or SIGTERM, cancel the context, triggering a graceful shutdown
@@ -661,6 +669,8 @@ func init() {
 
 	// Flags for proxy configuration
 	values := mesh.DefaultProxyConfig()
+	proxyCmd.PersistentFlags().StringVar(&proxyImplementFlag, "proxyImplement", string(constants.IstioProxyEnvoyImplement),
+		"Prooxy implement, value: [envoy/mosn], default: envoy")
 	proxyCmd.PersistentFlags().StringVar(&configPath, "configPath", values.ConfigPath,
 		"Path to the generated configuration file directory")
 	proxyCmd.PersistentFlags().StringVar(&binaryPath, "binaryPath", values.BinaryPath,

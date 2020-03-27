@@ -121,8 +121,14 @@ containers:
   - $(POD_NAMESPACE).svc.{{ .Values.global.proxy.clusterDomain }}
   - --configPath
   - "{{ .ProxyConfig.ConfigPath }}"
+{{- if .Values.global.sidecar.binaryPath }}
   - --binaryPath
-  - "{{ .ProxyConfig.BinaryPath }}"
+  - "{{ .Values.global.sidecar.binaryPath }}"
+{{- end}}
+{{- if .Values.global.sidecar.implement }}
+  - --proxyImplement
+  - "{{ .Values.global.sidecar.implement }}"
+{{- end}}
   - --serviceCluster
   {{ if ne "" (index .ObjectMeta.Labels "app") -}}
   - "{{ index .ObjectMeta.Labels `app` }}.$(POD_NAMESPACE)"

@@ -14,6 +14,8 @@
 
 package constants
 
+type ProxyImplement string
+
 const (
 	// UnspecifiedIP constant for empty IP address
 	UnspecifiedIP = "0.0.0.0"
@@ -89,4 +91,11 @@ const (
 
 	// IstioMeshGateway is the built in gateway for all sidecars
 	IstioMeshGateway = "mesh"
+
+	// IstioProxyImplement: envoy
+	IstioProxyEnvoyImplement = ProxyImplement("envoy")
+
+	// IstioProxyImplement: mosn
+	IstioProxyMosnImplement = ProxyImplement("mosn")
+
 )

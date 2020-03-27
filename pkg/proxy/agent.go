@@ -12,15 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package envoy
+package proxy
 
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net"
 	"reflect"
 	"sync"
 	"time"
 
+	"istio.io/api/mesh/v1alpha1"
+	"istio.io/istio/pkg/config/constants"
 	"istio.io/pkg/log"
 )
 
@@ -65,9 +69,26 @@ type Agent interface {
 	Restart(config interface{})
 }
 
+type proxyFactory func(proxyConfig ProxyConfig) (Proxy, error)
+
 var errAbort = errors.New("epoch aborted")
 
+var proxyFactories map[constants.ProxyImplement]proxyFactory
+var defaultProxyFactory proxyFactory
+
+func init() {
+	proxyFactories = make(map[constants.ProxyImplement]proxyFactory)
+}
+
 const errOutOfMemory = "signal: killed"
+
+func RegisterProxyFactory(implement constants.ProxyImplement, factory proxyFactory) {
+	proxyFactories[implement] = factory
+}
+
+func RegisterDefaultProxyFactory(factory proxyFactory) {
+	defaultProxyFactory = factory
+}
 
 // NewAgent creates a new proxy agent for the proxy start-up and clean-up functions.
 func NewAgent(proxy Proxy, terminationDrainDuration time.Duration) Agent {
@@ -94,6 +115,52 @@ type Proxy interface {
 
 // DrainConfig is used to signal to the Proxy that it should start draining connections
 type DrainConfig struct{}
+
+type ProxyConfig struct {
+	Config              v1alpha1.ProxyConfig
+	Node                string
+	LogLevel            string
+	ComponentLogLevel   string
+	PilotSubjectAltName []string
+	MixerSubjectAltName []string
+	NodeIPs             []string
+	DNSRefreshRate      string
+	PodName             string
+	PodNamespace        string
+	PodIP               net.IP
+	SDSUDSPath          string
+	SDSTokenPath        string
+	ControlPlaneAuth    bool
+	DisableReportCalls  bool
+	ProxyImplement      constants.ProxyImplement
+}
+
+func NewProxy(config ProxyConfig) (Proxy, error) {
+	// try run proxyFactories map in package pkg/proxy and return first match proxy implement
+	// proxy implement requires bin file exists
+	// if unable to new, fallback to envoy as a default implement
+
+	if config.ProxyImplement != constants.IstioProxyEnvoyImplement {
+		proxy, err := tryNewRegisteredProxy(config)
+		if proxy != nil && err == nil {
+			return proxy, nil
+		}
+
+		log.Warnf("try new %s as proxy failed, fallback to envoy implement, err: %v", config.ProxyImplement, err)
+	}
+
+	return defaultProxyFactory(config)
+}
+
+func tryNewRegisteredProxy(config ProxyConfig) (Proxy, error) {
+	factory, ok := proxyFactories[config.ProxyImplement]
+	if ok {
+		log.Debugf("found proxy factory for %s, try new %s as proxy", config.ProxyImplement, config.ProxyImplement)
+		return factory(config)
+	}
+
+	return nil, fmt.Errorf("proxy implement %s factory not found", config.ProxyImplement)
+}
 
 type agent struct {
 	// proxy commands

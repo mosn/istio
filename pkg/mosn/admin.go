@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package envoy
+package mosn
 
 import (
 	"bytes"
@@ -27,13 +27,13 @@ import (
 
 // Shutdown initiates a graceful shutdown of Envoy.
 func Shutdown(adminPort uint32) error {
-	_, err := doEnvoyPost("quitquitquit", "", "", adminPort)
+	_, err := doMosnPost("quitquitquit", "", "", adminPort)
 	return err
 }
 
 // GetServerInfo returns a structure representing a call to /server_info
 func GetServerInfo(adminPort uint32) (*envoyAdmin.ServerInfo, error) {
-	buffer, err := doEnvoyGet("server_info", adminPort)
+	buffer, err := doMosnGet("server_info", adminPort)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func GetServerInfo(adminPort uint32) (*envoyAdmin.ServerInfo, error) {
 
 // GetConfigDump polls Envoy admin port for the config dump and returns the response.
 func GetConfigDump(adminPort uint32) (*envoyAdmin.ConfigDump, error) {
-	buffer, err := doEnvoyGet("config_dump", adminPort)
+	buffer, err := doMosnGet("config_dump", adminPort)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func GetConfigDump(adminPort uint32) (*envoyAdmin.ConfigDump, error) {
 	return msg, nil
 }
 
-func doEnvoyGet(path string, adminPort uint32) (*bytes.Buffer, error) {
+func doMosnGet(path string, adminPort uint32) (*bytes.Buffer, error) {
 	requestURL := fmt.Sprintf("http://127.0.0.1:%d/%s", adminPort, path)
 	buffer, err := proxy.DoHTTPGet(requestURL)
 	if err != nil {
@@ -69,7 +69,7 @@ func doEnvoyGet(path string, adminPort uint32) (*bytes.Buffer, error) {
 	return buffer, nil
 }
 
-func doEnvoyPost(path, contentType, body string, adminPort uint32) (*bytes.Buffer, error) {
+func doMosnPost(path, contentType, body string, adminPort uint32) (*bytes.Buffer, error) {
 	requestURL := fmt.Sprintf("http://127.0.0.1:%d/%s", adminPort, path)
 	buffer, err := proxy.DoHTTPPost(requestURL, contentType, body)
 	if err != nil {
