@@ -51,8 +51,9 @@ const (
 	// ConfigPathDir config directory for storing envoy json config files.
 	ConfigPathDir = "/etc/istio/proxy"
 
-	// BinaryPathFilename envoy binary location
-	BinaryPathFilename = "/usr/local/bin/envoy"
+	// TODO default use envoy at the istio-1.6.x.
+	// BinaryPathFilename mosn binary location
+	BinaryPathFilename = "/usr/local/bin/mosn"
 
 	// ServiceClusterName service cluster name used in xDS calls
 	ServiceClusterName = "istio-proxy"

@@ -182,21 +182,27 @@
           {
           "prefix": "component"
           },
-          {{- range $a, $s := .inclusionPrefix }}
           {
-          "prefix": "{{$s}}"
+          "prefix": "cluster_manager"
           },
-          {{- end }}
-          {{- range $a, $s := .inclusionSuffix }}
           {
-          "suffix": "{{$s}}"
+          "prefix": "listener_manager"
           },
-          {{- end }}
-          {{- range $a, $s := .inclusionRegexps }}
           {
-          "regex": "{{js $s}}"
+          "prefix": "http_mixer_filter"
           },
-          {{- end }}
+          {
+          "prefix": "tcp_mixer_filter"
+          },
+          {
+          "prefix": "server"
+          },
+          {
+          "prefix": "cluster.xds-grpc"
+          },
+          {
+          "suffix": "ssl_context_update_by_sds"
+          }
         ]
       }
     }
@@ -274,6 +280,23 @@
               "h2"
             ],
             {{ if eq .sds_uds_path "unix:/etc/istio/proxy/SDS" }}
+             "tls_certificate_sds_secret_configs":[
+              {
+                "name":"default",
+                "sds_config":{
+                  "api_config_source":{
+                    "api_type":"GRPC",
+                    "grpc_services":[
+                      {
+                        "envoy_grpc":{
+                          "cluster_name": "sds-grpc"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
             "validation_context": {
               "trusted_ca": {
                 {{ if eq .pilot_cert_provider "kubernetes" }}
@@ -361,7 +384,7 @@
               }
             }
             {{ end }}
-          },
+          }
         },
         {{ else }}
         "tls_context": {
@@ -391,7 +414,7 @@
         {{ end }}
         "hosts": [
           {
-            "socket_address": {{ .pilot_grpc_address }}
+             "socket_address": {"address": "istio-pilot.istio-system.svc", "port_value": 15010}
           }
         ],
         "circuit_breakers": {

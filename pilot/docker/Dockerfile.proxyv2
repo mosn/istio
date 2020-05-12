@@ -43,6 +43,9 @@ ARG istio_version
 # Install Envoy.
 COPY envoy /usr/local/bin/envoy
 
+# Install mosn.
+COPY mosn /usr/local/bin/mosn
+
 # Environment variable indicating the exact proxy sha - for debugging or version-specific configs 
 ENV ISTIO_META_ISTIO_PROXY_SHA $proxy_version
 # Environment variable indicating the exact build, for debugging

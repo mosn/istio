@@ -152,6 +152,13 @@ export ISTIO_ENVOY_LINUX_RELEASE_DIR ?= ${TARGET_OUT_LINUX}/release
 export ISTIO_ENVOY_LINUX_RELEASE_NAME ?= envoy-${ISTIO_ENVOY_VERSION}
 export ISTIO_ENVOY_LINUX_RELEASE_PATH ?= ${ISTIO_ENVOY_LINUX_RELEASE_DIR}/${ISTIO_ENVOY_LINUX_RELEASE_NAME}
 
+# MOSN generic vars.
+export ISTIO_MOSN_BASE_URL ?= https://github.com/mosn/mosn/releases/download/
+export ISTIO_MOSN_VERSION ?= 0.10.0
+export ISTIO_MOSN_URL ?= ${ISTIO_MOSN_BASE_URL}/${ISTIO_MOSN_VERSION}/mosn
+export ISTIO_MOSN_LINUX_PATH ?= ${ISTIO_ENVOY_LINUX_RELEASE_DIR}/mosn-${ISTIO_MOSN_VERSION}
+
+
 # Envoy macOS vars.
 # TODO Change url when official envoy release for macOS is available
 export ISTIO_ENVOY_MACOS_VERSION ?= 1.0.2
